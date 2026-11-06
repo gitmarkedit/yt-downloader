@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  ⚡ YT-DLP ULTIMATE DOWNLOADER (macOS & Apple Silicon Edition)
+#  ⚡ yt (macOS Edition)
 #  Высокопроизводительный медиа-загрузчик с аппаратным ускорением VideoToolbox
 # ==============================================================================
 
@@ -69,7 +69,7 @@ load_config() {
 save_config() {
     mkdir -p "$CONFIG_DIR" 2>/dev/null || true
     cat > "$CONFIG_FILE" <<EOF
-# YT-DLP Ultimate Downloader Configuration
+# yt (macOS Edition) Configuration
 DEST="$DEST"
 EMBED_METADATA="$EMBED_METADATA"
 EMBED_THUMBNAIL="$EMBED_THUMBNAIL"
@@ -161,31 +161,31 @@ check_dependencies() {
 }
 
 # ------------------------------------------------------------------------------
-# Аппаратный статус и Баннер
+# Идеально выверенный баннер (без глитчей и сдвигов границ)
 # ------------------------------------------------------------------------------
 show_banner() {
     clear
     echo -e "${CYAN}${BOLD}"
     cat << "EOF"
-   ╭─────────────────────────────────────────────────────────────╮
-   │        ⚡  Y T - D L P   U L T I M A T E   [macOS]          │
-   │       Высокоскоростная загрузка с аппаратным медиа-ядром     │
-   ╰─────────────────────────────────────────────────────────────╯
+   ╭──────────────────────────────────────────────────────────╮
+   │                    yt (macOS Edition)                    │
+   │    Высокоскоростная загрузка с аппаратным медиа-ядром    │
+   ╰──────────────────────────────────────────────────────────╯
 EOF
     echo -e "${RESET}"
 
-    # Определение чипа и аппаратного ускорения
-    local hw_accel_info=""
+    # Статус платформы с ровным выравниванием двоеточий
     if [ "$OS_NAME" = "Darwin" ]; then
+        local hw_accel_info=""
         if ffmpeg -hwaccels 2>/dev/null | grep -q "videotoolbox"; then
             hw_accel_info="${GREEN}VideoToolbox [Hardware Accelerated]${RESET}"
         else
             hw_accel_info="${YELLOW}Software (CPU)${RESET}"
         fi
-        echo -e "  ${GRAY} Платформа :${RESET} ${WHITE}${BOLD}$CPU_BRAND${RESET} (${CYAN}$CPU_ARCH${RESET})"
-        echo -e "  ${GRAY}⚡ Движок   :${RESET} $hw_accel_info  ${GRAY}• Потоков:${RESET} ${CYAN}${CONCURRENT_FRAGMENTS}${RESET}"
+        echo -e "  ${GRAY}  Модель  :${RESET} ${WHITE}${BOLD}$CPU_BRAND${RESET} (${CYAN}$CPU_ARCH${RESET})"
+        echo -e "  ${YELLOW}⚡ Движок  :${RESET} $hw_accel_info  ${GRAY}• Потоков:${RESET} ${CYAN}${CONCURRENT_FRAGMENTS}${RESET}"
     else
-        echo -e "  ${GRAY}Система   :${RESET} ${WHITE}$OS_NAME ($CPU_ARCH)${RESET}"
+        echo -e "  ${GRAY}Система    :${RESET} ${WHITE}$OS_NAME ($CPU_ARCH)${RESET}"
     fi
     echo ""
 }
@@ -226,7 +226,7 @@ fetch_and_display_info() {
         [ -n "$views" ] && [ "$views" != "NA" ] && \
         echo -e "${BLUE}│${RESET} ${DIM}Просмотры :${RESET}  $views"
         if [ "$APPLE_COMPAT_MODE" = "true" ]; then
-            echo -e "${BLUE}│${RESET} ${GREEN} Совместимость:${RESET} QuickTime, QuickLook (Пробел) & iPhone (H.264/AAC)"
+            echo -e "${BLUE}│${RESET} ${GREEN} Режим   :${RESET}  100% QuickTime & QuickLook (Пробел) совместимость"
         fi
         echo -e "${BLUE}╰───────────────────────────────────────────────────────────────╯${RESET}"
         echo ""
@@ -255,6 +255,7 @@ select_menu() {
             --prompt="$prompt " \
             --pointer="▶" \
             --marker="✓" \
+            --bind="esc:cancel,ctrl-c:abort" \
             --color="prompt:cyan,pointer:magenta,marker:green,header:yellow,border:blue"
     else
         echo -e "\n${CYAN}${BOLD}$prompt${RESET}"
@@ -307,6 +308,7 @@ get_url() {
             --border=rounded \
             --prompt="Ссылка > " \
             --header="Вставьте ссылку и нажмите Enter (Esc - выход):" \
+            --bind="esc:cancel,ctrl-c:abort" \
             --color="prompt:cyan,pointer:magenta,header:yellow,border:blue")
 
         local exit_code=$?
@@ -316,10 +318,18 @@ get_url() {
         typed_query=$(echo "$res" | sed -n '1p')
         selected_item=$(echo "$res" | sed -n '2p')
 
-        if [[ "$selected_item" =~ ^📋\ Использовать\ из\ буфера\ macOS:\ (https?://.+) ]]; then
-            echo "${BASH_REMATCH[1]}"
-        elif [ -n "$typed_query" ]; then
+        # Если пользователь напечатал/вставил ссылку в строку fzf
+        if [ -n "$typed_query" ]; then
             echo "$typed_query"
+        # Если выбрал пункт с ссылкой из буфера
+        elif [ -n "$selected_item" ]; then
+            local extracted_url
+            extracted_url=$(echo "$selected_item" | grep -o 'https\?://[^ ]*')
+            if [ -n "$extracted_url" ]; then
+                echo "$extracted_url"
+            else
+                echo "$selected_item"
+            fi
         elif [ -n "$clip_url" ]; then
             echo "$clip_url"
         fi
@@ -372,7 +382,7 @@ execute_download() {
     fi
 
     if [ "$DEBUG_MODE" = "true" ]; then
-        echo -e "${YELLOW}[DEBUG] Команда yt-dlp:${RESET} yt-dlp ${common_args[*]} ${extra_args[*]} $url\n"
+        echo -e "${YELLOW}[DEBUG] Команда:${RESET} yt-dlp ${common_args[*]} ${extra_args[*]} $url\n"
     fi
 
     echo -e "${CYAN}🚀 Запуск загрузки на максимальной скорости...${RESET}\n"
@@ -394,7 +404,7 @@ execute_download() {
 
         # Системное уведомление macOS
         if command -v osascript &>/dev/null; then
-            osascript -e "display notification \"Файл сохранён в $DEST\" with title \"YT-DLP Downloader\" sound name \"Glass\"" 2>/dev/null || true
+            osascript -e "display notification \"Файл сохранён в $DEST\" with title \"yt (macOS Edition)\" sound name \"Glass\"" 2>/dev/null || true
         fi
         return 0
     else
@@ -540,6 +550,7 @@ menu_timeslice() {
     echo -e "${CYAN}${BOLD}✂️ Скачивание фрагмента по таймкоду${RESET}"
     echo -e "${DIM}Примеры интервалов: 01:15-02:30 или 00:05:00-00:08:30${RESET}"
     read -p "Введите начало и конец (ММ:СС-ММ:СС): " time_range
+    time_range=$(echo "$time_range" | tr -d ' ')
 
     if [ -z "$time_range" ]; then
         echo -e "${YELLOW}Интервал не указан.${RESET}"
@@ -598,6 +609,7 @@ menu_playlist() {
         *"диапазон"*)
             echo ""
             read -p "Введите диапазон (например, 1-5 или 1,3,7): " range
+            range=$(echo "$range" | tr -d ' ')
             if [ -n "$range" ]; then
                 execute_download "$url" \
                     --yes-playlist \
@@ -672,10 +684,10 @@ diagnose_system() {
         if ffmpeg -hwaccels 2>/dev/null | grep -q "videotoolbox"; then
             echo -e "   • VideoToolbox      : ${GREEN}✓ ВКЛЮЧЕНО (Apple Hardware Acceleration активен)${RESET}"
         else
-            echo -e "   • VideoToolbox      : ${RED}✗ Отключено${RESET}"
+            echo -e "   • VideoToolbox      : ${YELLOW}Software (CPU)${RESET}"
         fi
     else
-        echo -e "   • FFmpeg : ${RED}Не установлен!${RESET}"
+        echo -e "   • FFmpeg            : ${RED}Не установлен!${RESET}"
     fi
     echo ""
 
@@ -684,7 +696,7 @@ diagnose_system() {
         echo "   • yt-dlp путь       : $(which yt-dlp)"
         echo "   • yt-dlp версия     : $(yt-dlp --version)"
     else
-        echo -e "   • yt-dlp : ${RED}Не установлен!${RESET}"
+        echo -e "   • yt-dlp            : ${RED}Не установлен!${RESET}"
     fi
     echo ""
 
@@ -693,14 +705,14 @@ diagnose_system() {
     if [ -w "$DEST" ]; then
         echo -e "   • Права на запись   : ${GREEN}✓ Доступно${RESET}"
         local free_space
-        free_space=$(df -h "$DEST" | awk 'NR==2 {print $4}')
+        free_space=$(df -h "$DEST" 2>/dev/null | awk 'NR==2 {print $4}')
         echo "   • Свободно места    : $free_space"
     else
         echo -e "   • Права на запись   : ${RED}✗ Запрещено! Проверьте папку.${RESET}"
     fi
     echo ""
 
-    read -p "Нажмите Enter для возврата..." _
+    read -p "Нажмите Enter для возврата в меню..." _
 }
 
 # ------------------------------------------------------------------------------
@@ -721,7 +733,7 @@ menu_settings() {
         [ "$SOUND_ENABLED" != "true" ] && sound_status="ВЫКЛ"
 
         local choice
-        choice=$(select_menu "Настройки yt-downloader >" \
+        choice=$(select_menu "Настройки yt (macOS Edition) >" \
             "📁 Папка сохранения : $DEST" \
             "🖼️  Вшивать обложку : [$thumb_status]" \
             "🏷️  Вшивать метаданные : [$meta_status]" \
@@ -859,10 +871,10 @@ main() {
             -h|--help)
                 show_banner
                 echo -e "${BOLD}Использование:${RESET}"
-                echo "  ./yt.sh                  # Интерактивное меню (с автоподхватом из буфера macOS)"
-                echo "  ./yt.sh <URL>            # Запуск сразу с указанной ссылкой"
-                echo "  ./yt.sh --diag           # Диагностика Mac, M-процессора и VideoToolbox"
-                echo "  ./yt.sh -h | --help      # Показать эту справку"
+                echo "  yt                       # Интерактивное меню (с автоподхватом из буфера macOS)"
+                echo "  yt <URL>                 # Запуск сразу с указанной ссылкой"
+                echo "  yt --diag                # Диагностика Mac, M-процессора и VideoToolbox"
+                echo "  yt -h | --help           # Показать эту справку"
                 echo ""
                 echo -e "${BOLD}Особенности macOS:${RESET}"
                 echo "  • Аппаратное ускорение VideoToolbox на процессорах Apple Silicon (M1/M2/M3/M4)"
@@ -902,7 +914,7 @@ main() {
         fi
 
         if [ -z "$URL" ]; then
-            echo -e "${YELLOW}Завершение работы.${RESET}"
+            echo -e "${GREEN}До встречи! 👋${RESET}"
             exit 0
         fi
 
@@ -985,7 +997,8 @@ main() {
                 echo ""
                 yt-dlp -F "$URL"
                 echo ""
-                read -p "Введите ID формата (например, 137+140 или best): " custom_format
+                read -p "Введите ID формата (например, 137+140 или best, Enter для отмены): " custom_format
+                custom_format=$(echo "$custom_format" | tr -d ' ')
                 if [ -n "$custom_format" ]; then
                     execute_download "$URL" \
                         -f "$custom_format" \
@@ -1019,7 +1032,7 @@ main() {
                 ;;
 
             *)
-                echo -e "${GREEN}Выход. До встречи! 👋${RESET}"
+                echo -e "${GREEN}До встречи! 👋${RESET}"
                 exit 0
                 ;;
         esac

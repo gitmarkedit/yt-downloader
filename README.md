@@ -1,4 +1,4 @@
-# ⚡ YT-DLP Ultimate Downloader (macOS Edition)
+# ⚡ yt (macOS Edition)
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%20(Apple%20Silicon%20%2F%20Intel)-000000?style=for-the-badge&logo=apple&logoColor=white)](https://apple.com)
 [![Bash](https://img.shields.io/badge/Shell-Bash%20%2F%20Zsh-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
